@@ -43,7 +43,7 @@ config = {
 params_loader = {
     'batch_size' : config['batch_size'],
     'shuffle':True,
-    'num_workers':4
+    'num_workers':0
 }
 
 # Load data
@@ -91,12 +91,11 @@ for epoch in range(config['epochs']):
 model.train(False)
 with torch.set_grad_enabled(False):
     X_test, y_test = test_set[0]
-    print(X_test)
     X_test_pred = model(torch.from_numpy(X_test[np.newaxis, :, :]).float().to(device))
-    print(X_test_pred)
 
 plt.plot(X_test)
 plt.plot(X_test_pred.cpu().numpy()[0])
 plt.legend(['Truth', 'Reconstruction'])
 plt.title('ECG MLP_AE - latent_dim 2')
 plt.savefig('img/reconstruction.png', bbox_inches='tight')
+plt.show()

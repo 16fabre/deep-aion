@@ -12,3 +12,12 @@ class Reshape(nn.Module):
     def forward(self, x):
         x = x.view(-1, self.new_shape[0], self.new_shape[1])
         return x
+
+class Permute(nn.Module):
+    def __init__(self, *dims):
+        super(Permute, self).__init__()
+        self.dims = dims
+    
+    def forward(self, x):
+        x = x.permute(*self.dims)
+        return x

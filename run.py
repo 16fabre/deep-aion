@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils import data
 from torch.autograd import Variable
 from datasets import ECG5000
-from models import MLP_AE
+from models import MLP_AE, CNN_AE
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt

@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils import data
 from torch.autograd import Variable
 from datasets import ECG5000
-from models import MLP_AE, CNN_AE
+from models import MLP_AE, CNN_AE, LSTM_AE
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -29,13 +29,13 @@ config = {
     'input_dim' : 1,
     'optimizer' : 'adam',
     'loss' : 'mse',
-    'epochs' : 100,
+    'epochs' : 300,
     'batch_size' : 64,
     'gpu' : False,
     'standardize' : True,
     'normalize' : False,
-    'units_enc' : 64,
-    'units_dec' : 64,
+    'units_enc' : 32,
+    'units_dec' : 32,
     'latent_dim' : 2,
     'num_classes' : 1    
 }
@@ -53,7 +53,7 @@ validation_set = ECG5000(data_set='validation')
 validation_generator = data.DataLoader(validation_set, **params_loader)
 test_set = ECG5000(data_set='test')
 
-model = MLP_AE(config).to(device)
+model = LSTM_AE(config).to(device)
 distance = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(),weight_decay=1e-5)
 print(model)

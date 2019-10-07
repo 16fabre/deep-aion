@@ -1,4 +1,7 @@
+import torch
 import torch.nn as nn
+from torch.autograd import Variable
+import numpy as np
 from layers import Flatten, Reshape, Permute
 
 class MLP_AE(nn.Module):
@@ -44,6 +47,52 @@ class CNN_AE(nn.Module):
             nn.ConvTranspose1d(8, 1, 3, stride=2, output_padding=1), # (1, 140)
             Permute(0, 2, 1)
         )
+    def forward(self, x):
+        x = self.encoder(x)
+        x = self.decoder(x)
+        return x
+
+class EncoderLSTM(nn.Module):
+    def __init__(self, config):
+        super(EncoderLSTM, self).__init__()
+        self.__dict__.update(config)
+
+        self.lstm = nn.LSTM(self.input_dim, self.units_enc, batch_first=True)
+        
+        #initialize weights with glorot uniform (like in Keras)
+        nn.init.xavier_uniform_(self.lstm.weight_ih_l0, gain=np.sqrt(6 / (self.input_dim + self.units_enc)))
+        nn.init.xavier_uniform_(self.lstm.weight_hh_l0, gain=np.sqrt(6 / (self.input_dim + self.units_dec)))
+        
+    def forward(self, x):
+        x, hidden = self.lstm(x)
+        hidden = Permute(1, 0, 2)(hidden[0])
+        hidden = hidden.repeat(1, self.timesteps, 1)
+        return hidden
+
+class DecoderLSTM(nn.Module):
+    def __init__(self, config):
+        super(DecoderLSTM, self).__init__()
+        self.__dict__.update(config)
+        
+        self.lstm = nn.LSTM(self.units_enc, self.units_dec, batch_first=True)
+        self.dense = nn.Linear(self.units_dec, self.input_dim)
+
+        #initialize weights
+        nn.init.xavier_uniform_(self.lstm.weight_ih_l0, gain=np.sqrt(6 / (self.units_enc + self.units_dec)))
+        nn.init.xavier_uniform_(self.lstm.weight_hh_l0, gain=np.sqrt(6 / (self.units_enc + self.units_dec)))
+        
+    def forward(self, x):
+        x, hidden = self.lstm(x)
+        x = self.dense(x)
+        return x
+
+class LSTM_AE(nn.Module):
+    def __init__(self, config):
+        super(LSTM_AE, self).__init__()
+        self.__dict__.update(config)
+        self.encoder = EncoderLSTM(config)
+        self.decoder = DecoderLSTM(config)
+        
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)

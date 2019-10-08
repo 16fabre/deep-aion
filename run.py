@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils import data
 from torch.autograd import Variable
 from datasets import ECG5000
-from models import MLP_AE, CNN_AE, LSTM_AE
+from models import MLP_AE, CNN_AE, LSTM_AE, MLP_VAE, vae_loss
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -53,8 +53,9 @@ validation_set = ECG5000(data_set='validation')
 validation_generator = data.DataLoader(validation_set, **params_loader)
 test_set = ECG5000(data_set='test')
 
-model = LSTM_AE(config).to(device)
-distance = nn.MSELoss()
+model = MLP_VAE(config).to(device)
+# distance = nn.MSELoss()
+distance = vae_loss
 optimizer = torch.optim.Adam(model.parameters(),weight_decay=1e-5)
 print(model)
 
@@ -66,8 +67,10 @@ for epoch in range(config['epochs']):
     for X_train, y_train in train_generator:
         X_train, y_train = X_train.float().to(device), y_train.float().to(device)
         # Forward
-        output = model(X_train)
-        loss = distance(output, y_train)
+        # output = model(X_train)
+        output, mu, logvar = model(X_train)        
+        # loss = distance(output, y_train)
+        loss = distance(y_train, output, mu, logvar)
         # Backward
         optimizer.zero_grad()
         loss.backward()
@@ -80,8 +83,10 @@ for epoch in range(config['epochs']):
     with torch.set_grad_enabled(False):
         for X_val, y_val in validation_generator:
             X_val, y_val = X_val.float().to(device), y_val.float().to(device)
-            output = model(X_val)
-            loss = distance(output, y_val)
+            # output = model(X_val)
+            output, mu, logvar = model(X_val)
+            # loss = distance(output, y_val)
+            loss = distance(y_val, output, mu, logvar)
             val_loss += loss.item()
     # Log
     print('Train loss: %.4f ; Validation loss: %.4f'%(train_loss / len(train_set), val_loss / len(validation_set)))
@@ -91,11 +96,11 @@ for epoch in range(config['epochs']):
 model.train(False)
 with torch.set_grad_enabled(False):
     X_test, y_test = test_set[0]
-    X_test_pred = model(torch.from_numpy(X_test[np.newaxis, :, :]).float().to(device))
+    X_test_pred, mu, logvar = model(torch.from_numpy(X_test[np.newaxis, :, :]).float().to(device))
 
 plt.plot(X_test)
 plt.plot(X_test_pred.cpu().numpy()[0])
 plt.legend(['Truth', 'Reconstruction'])
-plt.title('ECG MLP_AE - latent_dim 2')
+plt.title('ECG MLP_VAE - latent_dim 2')
 plt.savefig('img/reconstruction.png', bbox_inches='tight')
 plt.show()

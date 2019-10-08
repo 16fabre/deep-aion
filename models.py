@@ -97,3 +97,47 @@ class LSTM_AE(nn.Module):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
+
+class MLP_VAE(nn.Module):
+    def __init__(self, config):
+        super(MLP_VAE, self).__init__()
+        self.__dict__.update(config)
+        self.flat = Flatten()
+        self.dense1 = nn.Linear(self.timesteps * self.input_dim, 64)
+        self.densemu = nn.Linear(64, self.latent_dim)
+        self.denselogvar = nn.Linear(64, self.latent_dim)
+        self.dense2 = nn.Linear(self.latent_dim, 64)
+        self.dense3 = nn.Linear(64, self.timesteps * self.input_dim)
+        self.reshape = Reshape((self.timesteps, self.input_dim))
+    
+    def encoder(self, x):
+        x = self.flat(x)
+        x = self.dense1(x)
+        mu, logvar = self.densemu(x), self.denselogvar(x)
+        return mu, logvar
+
+    def decoder(self, x):
+        x = self.dense2(x)
+        x = self.dense3(x)
+        x = self.reshape(x)
+        return x
+    
+    def reparameterize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+    
+    def forward(self, x):
+        mu, logvar = self.encoder(x)
+        z = self.reparameterize(mu, logvar)
+        x = self.decoder(z)
+        return x, mu, logvar
+
+def vae_loss(x_true, x_pred, mu, logvar):
+    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
+    # https://arxiv.org/abs/1312.6114
+    
+    loss = torch.nn.functional.mse_loss(x_true, x_pred, reduction='sum') # Binary Crossentropy
+    loss += -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) # Kullback–Leibler Divergence
+
+    return loss

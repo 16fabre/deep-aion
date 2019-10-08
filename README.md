@@ -14,7 +14,10 @@ This project gathers different deep learning models for time series (classificat
 
 The [models.py](models.py) file contains all the implemented models. Here is the list:
 
-* MLP_AE: A multi layer perceptron autoencoder.
+* MLP_AE: A multi layer perceptron autoencoder,
+* CNN_AE: A convolutional 1D autoencoder,
+* LSTM_AE: A long short term memory autoencoder,
+* MLP_VAE: A multi layer perceptron variational autoencoder.
 
 ## Data
 
